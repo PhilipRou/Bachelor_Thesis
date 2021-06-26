@@ -9,11 +9,12 @@ using Statistics
 using DelimitedFiles
 
 
-N_t = 12        # Anzahl temporaler Gitterpunkte
-N_x = 12    	# Anzahl räumlicher Gitterpunkte
+N = 24          # Wir betrachten quadratische Gitter der Kantenlänge N
+N_t = N         # Anzahl temporaler Gitterpunkte
+N_x = N    	    # Anzahl räumlicher Gitterpunkte
 β = (N_x*N_t)/80      # 1/g², wobei g die Eich-Kopplung ist
 r = 2*pi*0.1      # Schrittweite im Metropolis (nur in pos. Richtung, s.u.)
-nb_sim = 4000   # Anzahl der Update-Durchläufe. Pro Durchlauf werden:
+nb_sim = 5000   # Anzahl der Update-Durchläufe. Pro Durchlauf werden:
 nb_metro = 3    # nb_metro Metropolis-Updates und
 nb_top = 1      # nb_top topologische-Updates durchgeführt.
 Nb_updates = nb_sim*(nb_metro+nb_top)   # Anzahl insg. durchgeführter Updates

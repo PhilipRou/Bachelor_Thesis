@@ -5,7 +5,7 @@ using OffsetArrays
 using LsqFit
 
 # Wir arbeiten ohnehin mit quadratischen Gittern:
-N = 36
+N = 24
 N_t = N
 N_x = N
 
@@ -67,6 +67,7 @@ end
 model(x, p) = p[1]*x
 p0 = [1.0]
 fit = curve_fit(model, int_min:int_max, means, 1 ./uncer.^2, p0)
+χ_sq = round(sum((fit.resid.^2))/dof(fit), digits = 3)      # χ²/dof
 α = fit.param[1]
 α_err = stderror(fit)[1]
 Z = 1/α
@@ -80,7 +81,7 @@ Z_err = round(Z_err, digits = 3)
 image = plot(int_min:1:int_max, means, yerror = uncer, seriestype = :scatter)
 image = plot!([int_min,int_max], [model(int_min, α), model(int_max, α)])
 image = plot!(
-title = "$N_t×$N_x lattice,
+title = "$N_t×$N_x lattice,   χ²/#dof = $χ_sq
 slope = $α ± $α_err   ⇒   Z = $Z ± $Z_err",
 size=(750,600),
 xticks = int_min:int_max,
@@ -93,7 +94,12 @@ legendfontsize = 12,
 titlefontsize = 16
 )
 
-#savefig("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\topup_analyze_$N_t.x.$N_x.")
+display(image)
 
-# sum((fit.resid.^2))/dof(fit)      # χ²
-# fit.resid
+
+# Der folgende Befehl speichert die aktuelle Grafik im Dateipfad
+# C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis
+# unter dem Namen topup_analyze_N_t.x.N_x. wobei N_t und N_x durch die
+# jeweiligen Werte ersetzt werden (also z.B. "24.x.24.")
+
+savefig("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\topup_analyze_$N_t.x.$N_x.")
