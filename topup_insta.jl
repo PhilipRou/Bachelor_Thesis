@@ -4,8 +4,19 @@
 # sinusförmiger Verlauf der kont. Ladung entsteht, dessen Frequenz
 # bekannt ist, wird außerdem eine Datei erstellt, die die Amplituden
 # beinhaltet, sodass dieser Verlauf eindeutig bestimmt ist.
+#
+# Die in der Thesis verwendeten Abbildungen wurden mit einer leicht abgewandelten
+# Version dieses Programms erstellt, welche verlangt, dass jeder Plot manuell
+# angepasst werden muss. Um dies zu vermeiden, wurde diese Version vorgelegt
+# (hier müssen nur die entsprechenden Dateipfade eingesetzt werden, s.u.)
 
 using Plots
+using DelimitedFiles
+
+text1 = []
+amplitudes = []
+text2 = []
+anomals = []
 
 # Da direkt alle 5 Plots erstellt werden, ist der Hauptteil des Programms in
 # einer großen for-Schleife
@@ -63,8 +74,6 @@ end
 ##### Generieren der Plots und des Textfiles mit Amplituden
 
 
-text = []
-amplitudes = []
 insta_int_charges = []
 insta_cont_charges = []
 c = 0.5*N^2+1
@@ -88,15 +97,25 @@ legendfontsize = 12,
 titlefontsize = 16
 )
 
+display(IMAGE)
+
+# Der folgende Befehl speichert die erstellten Grafiken in dem Dateipfad
+# C:\Users\proue\OneDrive\Desktop\Physik Uni\Thesis\Julia-stuff
+# unter dem Namen compare_insta_N_t.x.N_x. wobei für N_t und N_x die jeweiligen
+# Werte eingesetzt werden:
+
 # savefig("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\compare_insta_$N_t.x.$N_x.")
 
-push!(text, "Amplitude für N=$N:")
+push!(text1, "Amplitude für N=$N:")
 push!(amplitudes, cont_charge(instanton(0.25*N^2)))
+push!(text2, "diskr. Lad. bei n = 0.5*N^2:")
+aus = abs(round(Int, insta_int_charges[2]))
+push!(anomals, string("± ", aus))
 
 
 end
 
-# Der folgende Befehl erstellt die Datei compare_insta.txt in dem Dateipfad,
+# Der folgende Befehl erstellt die Datei compare_insta.txt in dem Dateipfad
 # C:\Users\proue\OneDrive\Desktop\Physik Uni\Thesis\Julia-stuff
 
-# writedlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\compare_insta.txt", [e d])
+# writedlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\compare_insta.txt", [text1 amplitudes text2 anomals])
