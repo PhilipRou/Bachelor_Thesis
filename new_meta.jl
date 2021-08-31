@@ -15,17 +15,17 @@ N_t = 24
 N_x = 24
 β = (N_t*N_x)/80
 r = 2*pi*0.05
-sweeps = 800000
-sweeps_by_ten = sweeps/10
+sweeps = 400000
+sweeps_by_ten = Int64(0.1*sweeps)
 sweeps_count = 0
 cut = 1000
 nb_accepted = 0
-nb_metro = 3
-nb_snapshots = Int64(sweeps/10)
+nb_metro = 1
+nb_snapshots = Int64(sweeps/5)
 
 δq = 0.01
 w = 0.0001
-Q_thrs = 15
+Q_max = 15
 boundary_count = 0
 
 
@@ -137,23 +137,29 @@ function Delta_Q(U_old, U_new, mu, nt, nx, config)
 end
 
 function grid_ind(q)
-    grid_index = (q+Q_thrs)/δq + 0.5000000001
+    grid_index = (q+Q_max)/δq + 0.5000000001
     return round(Int, grid_index)
 end
 
 function update_bias(q)
     grid_index = grid_ind(q)
-    grid_q = -Q_thrs + (grid_index-1)*δq
+    grid_q = -Q_max + (grid_index-1)*δq
 
     bias_potential[grid_index] += w*(1-(q-grid_q)/δq)
 
-    if grid_index != grid_ind(Q_thrs)
+    # if grid_index != grid_ind(Q_max)
         bias_potential[grid_index+1] += w*(q-grid_q)/δq
-    elseif grid_index == grid_ind(Q_thrs)
-        boundary_count += 1
-    end
+    # elseif grid_index == grid_ind(Q_max)
+        # boundary_count += 1
+    # end
 end
 
+function return_potential(q)
+    grid_index = grid_ind(q)
+    grid_q = -Q_max + (grid_index-1)*δq
+
+    (1-(q-grid_q)/δq)*bias_potential[grid_index] + ((q-grid_q)/δq)*bias_potential[grid_index+1]
+end
 
 
 ### Thermalisierung und sicherer Start bei Q_diskret = 0
@@ -170,7 +176,7 @@ end
 
 raw_configs = [config_1]
 insta = instanton(1)
-bias_potential = zeros(grid_ind(Q_thrs))
+bias_potential = zeros(grid_ind(Q_max))
 
 
 for k = 1:cut
@@ -315,7 +321,6 @@ for k = 1:sweeps
                 #⭕ folgende Zeile auch verändert:
                 ΔS = Delta_S(old_link, proposal, 2, I, j, test) + bias_potential[ind_prop] - bias_potential[old_ind]
 
-
                 if rand() < exp(-ΔS)
                     test[2][I][j] = proposal
                     nb_accepted += 1
@@ -374,19 +379,19 @@ println("\n")
 ### Plotten
 
 x_vals = []
-for k = 0:grid_ind(Q_thrs)-1
-    push!(x_vals, -Q_thrs+k*δq)
+for k = 0:grid_ind(Q_max)-1
+    push!(x_vals, -Q_max+k*δq)
 end
 
-image_bias = plot(x_vals, growing_biases[Int64(sweeps/nb_snapshots)])
-for k = 1:Int64(sweeps/nb_snapshots -1)
-    image_bias = plot!(x_vals, growing_biases[k])
-end
+image_bias = plot(x_vals, bias_potential)
+# for k = 1:Int64(sweeps/nb_snapshots -1)
+#     image_bias = plot!(x_vals, growing_biases[k])
+# end
 image_bias = plot!(
 title = "Metadynamics:   $N_t×$N_x lattice,   $sweeps sweeps,
 nb_metro = $nb_metro,   w = $w,   δq = $δq",
 size=(750,600),
-xticks = -Q_thrs:Q_thrs,
+xticks = -Q_max:Q_max,
 xlabel = "q grid",
 ylabel = "bias potential",
 legend = :false,
@@ -397,6 +402,7 @@ titlefontsize = 16
 display(image_bias)
 
 
+#=
 cont_charges = []
 int_charges = []
 for k = 1:length(configs)
@@ -408,8 +414,12 @@ image_time1 = plot(1:length(configs), cont_charges, title="continuous", legend=:
 display(image_time1)
 # display(image_time2)
 
-writedlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\new_meta.txt", growing_biases)
-writedlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\new_meta_cont_time.txt", cont_charges)
-writedlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\new_meta_int_time.txt", int_charges)
 
-# savefig("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\new_meta_1_time_cont_detailed_2")
+
+# writedlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\new_meta.txt", growing_biases)
+# writedlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\new_meta_cont_time.txt", cont_charges)
+# writedlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\new_meta_int_time.txt", int_charges)
+
+=#
+
+# savefig("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\new_meta_2")
