@@ -34,6 +34,23 @@ bb = readdlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stu
 bias_potential = bb[size(bb,1),:] .- bb[size(bb,1),1]
 avg_potential = bias_potential ./ counting
 
+bias_potential = -bb[size(bb,1),:]
+
+
+### Folgendes auskommentieren um das bias_potential geplotted zu sehen
+# function grid_ind(q)
+#     grid_index = (q+Q_max)/δq + 0.5000000001
+#     return round(Int, grid_index)
+# end
+#
+# x_vals = []
+# for k = 0:grid_ind(Q_max)-1
+#     push!(x_vals, -Q_max+k*δq)
+# end
+#
+# plot(x_vals, bias_potential)
+
+
 rest_potential = zeros(size(bb,2))
 for i = 1:length(rest_potential)
     Q_x = abs(-Q_max + (i-1)*δq)
@@ -161,7 +178,9 @@ function return_potential(q)
 end
 
 
-###############################################################
+
+##########   Thermalisierung   ###########
+
 
 
 config_1 = []
@@ -255,14 +274,14 @@ end
 
 
 
-
 acceptance_therm = round(100*nb_accepted/(2*cut*2*N_t*N_x), digits = 2)
 println("","Acceptance during thermalization: $acceptance_therm%")
 
 
 
+##########   Simulation   ###########
 
-#####   Hauptteil   #####
+
 # configs = [raw_configs[length(raw_configs)]]
 #Q = cont_charge(configs[1])
 test = deepcopy(raw_configs[length(raw_configs)])
@@ -271,6 +290,7 @@ int_charges = []
 cont_charges = []
 weights = []
 avg_weights = []
+plaquettes = []
 for k = 1:sweeps
 
     Q = cont_charge(test)
@@ -316,10 +336,11 @@ for k = 1:sweeps
             end
         end
     end
-    push!(int_charges, int_charge(test))                 #⭕
-    push!(cont_charges, cont_charge(test))               #⭕
-    push!(weights, exp(-bias_potential[grid_ind(Q)]))    #⭕
-    push!(avg_weights, exp(-avg_potential[grid_ind(Q)]))    #⭕
+    push!(int_charges, int_charge(test))                #⭕
+    push!(cont_charges, cont_charge(test))              #⭕
+    # push!(plaquettes, P12(test))                        #⭕
+    push!(weights, exp(-bias_potential[grid_ind(Q)]))   #⭕
+    # push!(avg_weights, exp(-avg_potential[grid_ind(Q)]))    #⭕
 
     #=
     # top. Update:
@@ -349,19 +370,34 @@ for k = 1:sweeps
     end
 end
 
+
+##########   Berechnen   ###########
+
+
+# Funktion um gewichtetes Mittel eines Arrays x zu bestimmen
+function get_mean(x)
+    return sum(x .* weights )/sum(weights)
+end
+
+# sum((int_charges.^2) .* (weights) )/sum(weights)
+
 acceptance = round(100*nb_accepted/((sweeps+2*cut)*2*N_t*N_x), digits = 2)
 int_charges = round.(Int, int_charges)
-χ_mean = sum((int_charges.^2) .* weights)/sum(weights)
-avg_χ_mean = sum((int_charges.^2) .* avg_weights)/sum(avg_weights)
+χ_mean = get_mean(int_charges.^2)
+# avg_χ_mean = sum((int_charges.^2) .* (avg_weights)/sum(avg_weights))
+# plaq_mean = get_mean(plaquettes)
 println("Acceptance total: $acceptance%")
 println("   ","χ_mean = ", round(χ_mean, digits=3))
-println("   ","avg_χ_mean = ", round(avg_χ_mean, digits=3))
+# println("   ","avg_χ_mean = ", round(avg_χ_mean, digits=3))
+# println("   ","plaq_mean = ", round(plaq_mean, digits=3))
 # println("Boundary count: $boundary_count")
 println("\n")
 
-sum((int_charges.^2))/length(int_charges)
+# sum((int_charges.^2))/length(int_charges)
 
-####### Plotten ########
+
+##########   Plotten   ###########
+
 
 
 histo_int = histogram(
@@ -397,3 +433,68 @@ titlefontsize = 16
 )
 
 display(histo_cont)
+
+#=
+histo_weights = histogram(
+weights, #= bins = -8:0.1:8, =# c = :salmon, background_color = :grey,
+bar_edges = :false)
+
+histo_int = plot!(
+size = (750,600), title = "Weights: e^(-V)
+$N_t×$N_x, β = $β, $sweeps sweeps",
+# xticks = -8:1:8,
+xlabel = "Weights",
+legend = :false,
+labelfontsize = 16,
+# legendfontsize = 12,
+titlefontsize = 16
+)
+
+display(histo_weights)
+
+
+histo_weights_inv = histogram(
+weights.^-1, #= bins = -8:0.1:8, =# c = :salmon, background_color = :grey,
+bar_edges = :false)
+
+histo_int = plot!(
+size = (750,600), title = "Inverted Weights: e^(V)
+$N_t×$N_x, β = $β, $sweeps sweeps",
+# xticks = -8:1:8,
+xlabel = "Inverted Weights",
+legend = :false,
+labelfontsize = 16,
+# legendfontsize = 12,
+titlefontsize = 16
+)
+
+display(histo_weights_inv)
+=#
+
+wab = deepcopy(weights)
+
+histo_int_weighted = histogram(
+int_charges, bins = -30.25:0.5:31, c = :salmon, background_color = :grey,
+bar_edges = :false, weights = Float64.(wab))
+
+histo_int_weighted = plot!(
+size = (750,600), title = "Discrete top. charges on rest potential, WEIGHTED
+$N_t×$N_x, β = $β, $sweeps sweeps",
+xticks = -26:2:26,
+xlabel = "Discrete Q",
+legend = :false,
+labelfontsize = 16,
+# legendfontsize = 12,
+titlefontsize = 16
+)
+display(histo_int_weighted)
+
+
+
+plot(
+cont_charges, weights,
+seriestype = :scatter,
+legend = :false,
+xticks = -8:2:8,
+size = (750,600)
+)
