@@ -32,24 +32,9 @@ boundary_count = 0
 
 bb = readdlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\new_meta_bb.txt")
 bias_potential = bb[size(bb,1),:] .- bb[size(bb,1),1]
-avg_potential = bias_potential ./ counting
+# avg_potential = bias_potential ./ counting
 
-bias_potential = -bb[size(bb,1),:]
-
-
-### Folgendes auskommentieren um das bias_potential geplotted zu sehen
-# function grid_ind(q)
-#     grid_index = (q+Q_max)/δq + 0.5000000001
-#     return round(Int, grid_index)
-# end
-#
-# x_vals = []
-# for k = 0:grid_ind(Q_max)-1
-#     push!(x_vals, -Q_max+k*δq)
-# end
-#
-# plot(x_vals, bias_potential)
-
+# bias_potential = -bb[size(bb,1),:]
 
 rest_potential = zeros(size(bb,2))
 for i = 1:length(rest_potential)
@@ -59,6 +44,40 @@ for i = 1:length(rest_potential)
     end
 end
 
+
+#=
+Q_log = readdlm("C:\\Users\\proue\\OneDrive\\Desktop\\Physik Uni\\Thesis\\Julia-stuff\\loglog2.txt")
+log_charges = []
+log_cont_charges = []
+log_biases = []
+for i = 1:99999
+    j = (i-1)*7
+    push!(log_charges, Q_log[5+j,2])
+    push!(log_cont_charges, Q_log[6+j,2])
+    push!(log_biases, Q_log[7+j,2])
+end
+log_weights = []
+for i = 1:length(log_biases)
+    push!(log_weights, exp(log_biases[i]))
+end
+plot(log_cont_charges, log_biases, size = (750,600), seriestype = :scatter)
+sum((log_charges.^2) .* log_weights) / sum(log_weights)
+=#
+
+### Folgendes auskommentieren um das bias_potential geplotted zu sehen
+#=
+function grid_ind(q)
+    grid_index = (q+Q_max)/δq + 0.5000000001
+    return round(Int, grid_index)
+end
+
+x_vals = []
+for k = 0:grid_ind(Q_max)-1
+    push!(x_vals, -Q_max+k*δq)
+end
+
+plot(x_vals, bias_potential)
+=#
 
 # Funktion um eine n-Instanton-Konfig zu bauen
 function instanton(n)
@@ -248,6 +267,7 @@ for k = cut+1:2*cut
                 proposal += r*2*(rand()-0.5)
                 ΔS = Delta_S(old_link, proposal, 1, i, J, test)
 
+
                 if rand() < exp(-ΔS)
                     test[1][i][J] = proposal
                     nb_accepted += 1
@@ -261,6 +281,8 @@ for k = cut+1:2*cut
                 proposal = deepcopy(test[2][I][j])
                 proposal += r*2*(rand()-0.5)
                 ΔS = Delta_S(old_link, proposal, 2, I, j, test)
+                # ΔS = Delta_S(old_link, proposal, 2, I, j, test) + bias_potential[ind_prop] - bias_potential[old_ind]
+
 
                 if rand() < exp(-ΔS)
                     test[2][I][j] = proposal
@@ -289,6 +311,8 @@ Q = cont_charge(test)
 int_charges = []
 cont_charges = []
 weights = []
+actions = []
+biases = []
 avg_weights = []
 plaquettes = []
 for k = 1:sweeps
@@ -306,8 +330,11 @@ for k = 1:sweeps
                 Q_prop = Q + Delta_Q(old_link, proposal, 1, i, J, test)
                 old_ind = grid_ind(Q)
                 new_ind = grid_ind(Q_prop)
+                ΔS = Delta_S(old_link, proposal, 1, i, J, test) + bias_potential[new_ind] - bias_potential[old_ind]
 
-                if rand() < exp(rest_potential[old_ind]-rest_potential[new_ind])
+
+                # if rand() < exp(rest_potential[old_ind]-rest_potential[new_ind])
+                if rand() < exp(-ΔS)
                     test[1][i][J] = proposal
                     nb_accepted += 1
                     Q = Q_prop
@@ -327,8 +354,11 @@ for k = 1:sweeps
                 Q_prop = Q + Delta_Q(old_link, proposal, 2, I, j, test)
                 old_ind = grid_ind(Q)
                 new_ind = grid_ind(Q_prop)
+                ΔS = Delta_S(old_link, proposal, 2, I, j, test) + bias_potential[new_ind] - bias_potential[old_ind]
 
-                if rand() < exp(rest_potential[old_ind]-rest_potential[new_ind])
+
+                # if rand() < exp(rest_potential[old_ind]-rest_potential[new_ind])
+                if rand() < exp(-ΔS)
                     test[2][I][j] = proposal
                     nb_accepted += 1
                     Q = Q_prop
@@ -336,13 +366,14 @@ for k = 1:sweeps
             end
         end
     end
-    push!(int_charges, int_charge(test))                #⭕
-    push!(cont_charges, cont_charge(test))              #⭕
-    # push!(plaquettes, P12(test))                        #⭕
-    push!(weights, exp(-bias_potential[grid_ind(Q)]))   #⭕
-    # push!(avg_weights, exp(-avg_potential[grid_ind(Q)]))    #⭕
+    push!(int_charges, int_charge(test))                    #⭕
+    push!(cont_charges, cont_charge(test))                  #⭕
+    push!(actions, action(test))                            #⭕
+    # push!(plaquettes, P12(test))                          #⭕
+    push!(biases, bias_potential[grid_ind(Q)])              #⭕
+    # push!(avg_weights, exp(-avg_potential[grid_ind(Q)]))  #⭕
 
-    #=
+
     # top. Update:
     if k%nb_metro == 0
         proposal = deepcopy(test)
@@ -357,11 +388,10 @@ for k = 1:sweeps
         if rand() < exp(-ΔS)
             test = proposal
             Q = Q_prop
-            update_bias(Q)
+            # update_bias(Q)
         end
         #push!(configs, test)
     end
-    =#
 
     # for the long runs, so you know how much time has passed:
     if (k)%(sweeps_by_ten) == 0
@@ -370,30 +400,57 @@ for k = 1:sweeps
     end
 end
 
-
 ##########   Berechnen   ###########
-
+weights = exp.(biases)
 
 # Funktion um gewichtetes Mittel eines Arrays x zu bestimmen
-function get_mean(x)
+function get_weighted_mean(x)
     return sum(x .* weights )/sum(weights)
 end
 
-# sum((int_charges.^2) .* (weights) )/sum(weights)
+function bootstrap(K, observable)
+    bootstraps = []                     # Array für die K Mittelwerte
+    for i = 1:K
+        boots = []
+        for j = 1:length(observable)    # length(observable) = N aus Kap. 4.1.3
+            push!(boots, observable[rand(1:length(observable))])
+        end
+        push!(bootstraps, mean(boots))
+    end
+    O_tilda = mean(bootstraps)
+    σ = sqrt(mean((bootstraps .- O_tilda).^2))
+    return [O_tilda, σ]
+end
+
+function bootstrap_weighted(K, observable)
+    bootstraps = []                     # Array für die K Mittelwerte
+    for i = 1:K
+        boots = []
+        boot_weights = []
+        for j = 1:length(observable)    # length(observable) = N aus Kap. 4.1.3
+            rand_num = rand(1:length(observable))
+            push!(boot_weights, weights[rand_num])
+            push!(boots, observable[rand_num]*weights[rand_num])
+        end
+        push!(bootstraps, sum(boots)/sum(boot_weights))
+    end
+    O_tilda = mean(bootstraps)
+    σ = sqrt(mean((bootstraps .- O_tilda).^2))
+    return [O_tilda, σ]
+end
+
+
 
 acceptance = round(100*nb_accepted/((sweeps+2*cut)*2*N_t*N_x), digits = 2)
 int_charges = round.(Int, int_charges)
-χ_mean = get_mean(int_charges.^2)
-# avg_χ_mean = sum((int_charges.^2) .* (avg_weights)/sum(avg_weights))
-# plaq_mean = get_mean(plaquettes)
+q_sq_mean = get_weighted_mean(int_charges.^2)
+q_sq_boot = bootstrap_weighted(50, int_charges.^2)
 println("Acceptance total: $acceptance%")
-println("   ","χ_mean = ", round(χ_mean, digits=3))
-# println("   ","avg_χ_mean = ", round(avg_χ_mean, digits=3))
-# println("   ","plaq_mean = ", round(plaq_mean, digits=3))
+println("   ", "q_sq_mean = ", round(q_sq_mean, digits=3))
+println("   ","q_sq_boot = ", round(q_sq_boot[1], digits=3), " ± ", round(q_sq_boot[2], digits=3))
 # println("Boundary count: $boundary_count")
 println("\n")
 
-# sum((int_charges.^2))/length(int_charges)
 
 
 ##########   Plotten   ###########
@@ -418,13 +475,13 @@ display(histo_int)
 
 
 histo_cont = histogram(
-cont_charges, bins = -8:0.1:8, c = :salmon, background_color = :grey,
+cont_charges, bins = -20:0.1:20, c = :salmon, background_color = :grey,
 bar_edges = :false)
 
-histo_int = plot!(
+histo_cont = plot!(
 size = (750,600), title = "Continuous top. charges on rest potential
 $N_t×$N_x, β = $β, $sweeps sweeps",
-xticks = -8:1:8,
+xticks = -20:1:20,
 xlabel = "Continuous Q",
 legend = :false,
 labelfontsize = 16,
@@ -471,7 +528,7 @@ titlefontsize = 16
 display(histo_weights_inv)
 =#
 
-wab = deepcopy(weights)
+wab = deepcopy(weights) ./ sum(weights)
 
 histo_int_weighted = histogram(
 int_charges, bins = -30.25:0.5:31, c = :salmon, background_color = :grey,
@@ -498,3 +555,6 @@ legend = :false,
 xticks = -8:2:8,
 size = (750,600)
 )
+
+plot(1:length(cont_charges), cont_charges, size=(750,600))
+plot(1:length(cont_charges), int_charges, size=(750,600))
